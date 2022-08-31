@@ -10,25 +10,22 @@ import useWebSocket, { ReadyState } from 'react-use-websocket';
 function FrontPage(){
 
     const [classLabels, setClassLabels] = React.useState(['grizzly', 'black', 'teddy']);
-    const [socketUrl, setSocketUrl] = React.useState('wss://echo.websocket.org');
+    const [socketUrl, setSocketUrl] = React.useState('ws://127.0.0.1:8000/ws/server/');
     const [progress, setProgress] = React.useState(0);
     const { sendMessage, lastMessage, readyState } = useWebSocket(socketUrl);
 
-    React.useEffect(() => {
-        const timer = setInterval(() => {
-            const message = progress===100 ? 0: progress + 10
-            sendMessage(message);
-        }, 800);
-        return () => {
-          clearInterval(timer);
-        };
-    }, []);
+    const crateMessage = (m) => {
+        console.log(m)
+        return `{"message": "${m}"}`
+    }
 
     React.useEffect(() => {
         if (lastMessage !== null) {
             setProgress(lastMessage);
         }
     }, [lastMessage]);
+
+    const handleClickStart = React.useCallback(() => sendMessage(crateMessage(classLabels.toString())), [sendMessage, classLabels]);
 
     const handleKeyPress = (e) => {
         if(e.key === 'Enter'){
@@ -47,12 +44,20 @@ function FrontPage(){
         )
     }
 
+    const connectionStatus = {
+        [ReadyState.CONNECTING]: 'Connecting',
+        [ReadyState.OPEN]: 'Open',
+        [ReadyState.CLOSING]: 'Closing',
+        [ReadyState.CLOSED]: 'Closed',
+        [ReadyState.UNINSTANTIATED]: 'Uninstantiated',
+    }[readyState];
+
     return (
         <Box sx={{ flexGrow: 1, margin: 5 }}>
             <Grid container spacing={1}>
                 <Grid item xs={8}>
                     <TextField id="class_labels" label="Clases" variant='outlined' onKeyDown={handleKeyPress} />
-                    <Button color='primary' variant="contained" size="large" sx={{margin: 1}}>Iniciar</Button>
+                    <Button color='primary' variant="contained" size="large" onClick={handleClickStart} sx={{margin: 1}}>Iniciar</Button>
                     <Divider variant="middle" sx={{margin: 1}}/>
                 </Grid>
                 <Grid item xs={8}>
@@ -66,6 +71,9 @@ function FrontPage(){
                             />)
                         })
                     }
+                </Grid>
+                <Grid item xs={8} >
+                    <span>The WebSocket is currently {connectionStatus}</span>
                 </Grid>
                 <Grid item xs={8} >
                     <LinearProgressWithLabel value={progress} />
